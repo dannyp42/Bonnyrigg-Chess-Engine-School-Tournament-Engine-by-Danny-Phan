@@ -8,6 +8,7 @@ import os
 
 class Board:
 
+
     def __init__(self):
         self.squares = [[0, 0, 0, 0, 0, 0, 0, 0] for col in range(COLS)]
         self.last_move = None
@@ -18,6 +19,10 @@ class Board:
     def move(self, piece, move, testing=False):
         initial = move.initial
         final = move.final
+
+        captured_piece = self.squares[final.row][final.col].piece
+        piece_moved_before = piece.moved
+        last_move_before = self.last_move
 
         en_passant_empty = self.squares[final.row][final.col].isempty()
 
@@ -57,6 +62,26 @@ class Board:
         # set last move
         self.last_move = move
 
+        return captured_piece, piece_moved_before, last_move_before
+
+
+    def undo_move(self, piece, move, captured_piece, piece_moved_before, last_move_before):
+        initial = move.initial
+        final = move.final
+
+        # Move the piece back
+        self.squares[initial.row][initial.col].piece = piece
+
+        # Restore captured piece
+        self.squares[final.row][final.col].piece = captured_piece
+
+        # Restore state
+        piece.moved = piece_moved_before
+        self.last_move = last_move_before
+
+        # Clear generated moves
+        piece.clear_moves()
+        
     def valid_move(self, piece, move):
         return move in piece.moves
 
@@ -225,9 +250,9 @@ class Board:
                         # check potencial checks
                         if bool:
                             if not self.in_check(piece, move):
-                                # append new move
                                 piece.add_move(move)
-                            else: break
+                            else:
+                                continue
                         else:
                             # append new move
                             piece.add_move(move)
@@ -307,9 +332,7 @@ class Board:
                         # check potencial checks
                         if bool:
                             if not self.in_check(piece, move):
-                                # append new move
                                 piece.add_move(move)
-                            else: break
                         else:
                             # append new move
                             piece.add_move(move)

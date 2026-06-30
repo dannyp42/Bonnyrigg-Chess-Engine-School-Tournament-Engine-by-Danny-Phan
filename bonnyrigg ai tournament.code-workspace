@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "python-chess-ai-yt-master"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:system"
+	}
+}

@@ -5,6 +5,8 @@ from board import Board
 from dragger import Dragger
 from config import Config
 from square import Square
+from ai import MinimaxAI
+
 
 class Game:
 
@@ -14,6 +16,7 @@ class Game:
         self.board = Board()
         self.dragger = Dragger()
         self.config = Config()
+        self.ai = MinimaxAI(depth=3)
 
     # blit methods
 
@@ -25,7 +28,12 @@ class Game:
                 # color
                 color = theme.bg.light if (row + col) % 2 == 0 else theme.bg.dark
                 # rect
-                rect = (col * SQSIZE, row * SQSIZE, SQSIZE, SQSIZE)
+                rect = (
+                    BOARD_X + col * SQSIZE,
+                    BOARD_Y + row * SQSIZE,
+                    SQSIZE,
+                    SQSIZE
+                )   
                 # blit
                 pygame.draw.rect(surface, color, rect)
 
@@ -35,7 +43,10 @@ class Game:
                     color = theme.bg.dark if row % 2 == 0 else theme.bg.light
                     # label
                     lbl = self.config.font.render(str(ROWS-row), 1, color)
-                    lbl_pos = (5, 5 + row * SQSIZE)
+                    lbl_pos = (
+                        BOARD_X + 5,
+                        BOARD_Y + 5 + row * SQSIZE
+)
                     # blit
                     surface.blit(lbl, lbl_pos)
 
@@ -45,7 +56,10 @@ class Game:
                     color = theme.bg.dark if (row + col) % 2 == 0 else theme.bg.light
                     # label
                     lbl = self.config.font.render(Square.get_alphacol(col), 1, color)
-                    lbl_pos = (col * SQSIZE + SQSIZE - 20, HEIGHT - 20)
+                    lbl_pos = (
+                        BOARD_X + col * SQSIZE + SQSIZE - 20,
+                        BOARD_Y + BOARD_SIZE - 20
+                    )
                     # blit
                     surface.blit(lbl, lbl_pos)
 
@@ -60,7 +74,10 @@ class Game:
                     if piece is not self.dragger.piece:
                         piece.set_texture(size=80)
                         img = pygame.image.load(piece.texture)
-                        img_center = col * SQSIZE + SQSIZE // 2, row * SQSIZE + SQSIZE // 2
+                        img_center = (
+                            BOARD_X + col * SQSIZE + SQSIZE // 2,
+                            BOARD_Y + row * SQSIZE + SQSIZE // 2
+                        )
                         piece.texture_rect = img.get_rect(center=img_center)
                         surface.blit(img, piece.texture_rect)
 
@@ -69,13 +86,25 @@ class Game:
 
         if self.dragger.dragging:
             piece = self.dragger.piece
-
+    
             # loop all valid moves
             for move in piece.moves:
+
                 # color
-                color = theme.moves.light if (move.final.row + move.final.col) % 2 == 0 else theme.moves.dark
+                color = (
+                    theme.moves.light
+                    if (move.final.row + move.final.col) % 2 == 0
+                    else theme.moves.dark
+                )
+
                 # rect
-                rect = (move.final.col * SQSIZE, move.final.row * SQSIZE, SQSIZE, SQSIZE)
+                rect = (
+                    BOARD_X + move.final.col * SQSIZE,
+                    BOARD_Y + move.final.row * SQSIZE,
+                    SQSIZE,
+                    SQSIZE
+                )
+
                 # blit
                 pygame.draw.rect(surface, color, rect)
 
@@ -90,7 +119,12 @@ class Game:
                 # color
                 color = theme.trace.light if (pos.row + pos.col) % 2 == 0 else theme.trace.dark
                 # rect
-                rect = (pos.col * SQSIZE, pos.row * SQSIZE, SQSIZE, SQSIZE)
+                rect = (
+                    BOARD_X + pos.col * SQSIZE,
+                    BOARD_Y + pos.row * SQSIZE,
+                    SQSIZE,
+                    SQSIZE
+                )
                 # blit
                 pygame.draw.rect(surface, color, rect)
 
@@ -99,7 +133,12 @@ class Game:
             # color
             color = (180, 180, 180)
             # rect
-            rect = (self.hovered_sqr.col * SQSIZE, self.hovered_sqr.row * SQSIZE, SQSIZE, SQSIZE)
+            rect = (
+                BOARD_X + self.hovered_sqr.col * SQSIZE,
+                BOARD_Y + self.hovered_sqr.row * SQSIZE,
+                SQSIZE,
+                SQSIZE
+            )
             # blit
             pygame.draw.rect(surface, color, rect, width=3)
 
@@ -109,16 +148,47 @@ class Game:
         self.next_player = 'white' if self.next_player == 'black' else 'black'
 
     def set_hover(self, row, col):
+      if 0 <= row < 8 and 0 <= col < 8:
         self.hovered_sqr = self.board.squares[row][col]
+      else:
+        self.hovered_sqr = None
 
     def change_theme(self):
         self.config.change_theme()
 
+
     def play_sound(self, captured=False):
-        if captured:
+         if captured:
             self.config.capture_sound.play()
-        else:
+         else:
             self.config.move_sound.play()
 
+    def ai_move(self):
+
+        result = self.ai.best_move(self.board)
+
+        if result is None:
+                return
+
+        piece, move = result
+
+        board_piece = self.board.squares[
+                move.initial.row
+            ][
+                move.initial.col
+            ].piece
+
+        captured = self.board.squares[
+                move.final.row
+            ][
+                move.final.col
+            ].has_piece()
+
+        self.board.move(board_piece, move)
+
+        self.play_sound(captured)
+
+        self.next_turn()
+
     def reset(self):
-        self.__init__()
+            self.__init__()
